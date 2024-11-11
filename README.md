@@ -84,12 +84,15 @@ Copy the sample inventory to a new inventory file
 Make necessary changes to inventory.yml
 
 Run playbook - requires CEPH host SSH password and sudo password
+
 (Build Cluster w/ GUI)
+
     ```
     ansible-playbook microceph_cluster_pb.yml -i inventory.yml --ask-pass --ask-become-pass --tags build-cluster,setup-gui
     ```
 
 (Teardown Cluster)
+
     ```
     ansible-playbook microceph_cluster_pb.yml -i inventory.yml --ask-pass --ask-become-pass --tags teardown-cluster
     ```

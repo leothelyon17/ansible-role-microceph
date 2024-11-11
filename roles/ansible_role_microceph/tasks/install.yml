@@ -24,14 +24,6 @@
       - ceph-common
     state: latest
 
-# - name: Make sure snapd the latest and bleeding
-#   ansible.builtin.snap:
-#    name: snapd
-#    channel: "{{ microceph_snapd_version }}"
-#    state: present
-#   notify:
-#    - Restart microceph daemon
-
 - name: Enable main snap communication socket
   ansible.builtin.command:
     cmd: systemctl enable --now snapd.socket
@@ -42,15 +34,6 @@
     dest: /snap
     state: link  
   notify: Reboot if needed
-
-# - name: Reboot host(s) and wait for restart
-#   reboot:
-#    msg: "Reboot initiated by Ansible"
-#    connect_timeout: 5
-#    reboot_timeout: 600
-#    pre_reboot_delay: 0
-#    post_reboot_delay: 30
-#    test_command: whoami
 
 - name: Install microceph
   ansible.builtin.snap:
@@ -70,11 +53,6 @@
   ansible.builtin.command:
     cmd: snap connect microceph:hardware-observe
   changed_when: false
-
-# - name: Connect microceph to dm crypt
-#   ansible.builtin.command:
-#     cmd: snap connect microceph:dm-crypt
-#   changed_when: false
 
 # Flush handlers after the package installation
 - name: Flush handlers to reboot host

@@ -3,18 +3,15 @@ dependencies: []
 
 galaxy_info:
   role_name: ansible_role_microceph
-  namespace: pitabwire
-  author: Peter Bwire
-  description:
-  issue_tracker_url: https://github.com/pitabwire/ansible-role-microcep/issues
-  company: "Ant Investor, LTD"
+  namespace: leothelyon17
+  author: Jeffrey Lyon
+  description: Build microceph cluster using Ansible
+  issue_tracker_url: https://github.com/leothelyon17/ansible-role-microceph/issues
+  company: "Nerdy Lyon's Den"
   license: "MIT"
-  min_ansible_version: 2.10
+  min_ansible_version: "2.10"
   platforms:
-    - name: Debian
-      versions:
-        - all
-    - name: Ubuntu
+    - name: Rocky
       versions:
         - all
   galaxy_tags:

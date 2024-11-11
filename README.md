@@ -30,18 +30,25 @@ defined in `[defaults/main.yml](defaults/main.yml)`.
 * `microceph_cluster_nodes`: Hostgroup whose members will form ceph cluster
 * `microceph_seed_node`: Node name that will be used to start cluster formation
 * `microceph_encrypt_data`: Encrypt all the data in the microceph drive at rest see : [Full disk encryption](https://canonical-microceph.readthedocs-hosted.com/en/latest/explanation/fde-osd/) 
-* `microceph_disk_devices`: List of all the devices the role should add as osds once the nodes join. Make sure they exist prior otherwise the playbook will skip.
+* `ceph_release`: Used when building the ceph.repo file to identify the main ceph release train.
+* `el9`: Used when building the ceph.repo file to identify the distro.
 
 ### Playbook example
 
 ```yaml
-- hosts: servers
+- hosts: ceph_nodes
+  become: yes
+  become_method: su
   roles:
-    - role: pitabwire.microceph
+    - role: "./roles/ansible_role_microceph"
       vars:
         microceph_cluster_nodes: ceph_nodes
-        microceph_seed_node: ceph-node-1
+        microceph_seed_node: rocky9-lab-node1 # Optional
         microceph_encrypt_data: False
+        microceph_disk_devices:
+          - /dev/vdb
+        ceph_release: squid
+        distro: el9
 
 ```
 
@@ -51,16 +58,6 @@ defined in `[defaults/main.yml](defaults/main.yml)`.
 Additional nodes to the cluster can be added at any time. All nodes in the `microceph_cluster_nodes` hostgroup 
 will run `microceph cluster join <join token>`, more info on this can be found here: [microceph join non primary node](https://canonical-microceph.readthedocs-hosted.com/en/latest/tutorial/multi-node/#join-the-non-primary-nodes-to-the-cluster).
 
-
-## Testing
-
-### Using Molecule wrapper and system Python
-
-* `./moleculew lint`
-* `./moleculew create`
-* `./moleculew list`
-* `./moleculew check`
-* `./moleculew test`
 
 ### Using Python virtual environment
 
@@ -72,17 +69,7 @@ will run `microceph cluster join <join token>`, more info on this can be found h
     ```
     $ . venv/bin/activate
     ```
-* Install Molecule with lint and Docker options
+* Install Requirements
     ```
-    $ pip install molecule molecule-plugins[vagrant]
+    $ pip install -r requirements.txt
     ```
-* Install up-to-date Ansible package if necessary
-    ```
-    $ pip install ansible
-    ```
-* Run the test commands:
-  * `molecule lint`
-  * `molecule create`
-  * `molecule list`
-  * `molecule check`
-  * `molecule test`

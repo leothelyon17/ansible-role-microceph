@@ -1,14 +1,5 @@
 ---
 
-# - name: Enumerate all ceph cluster hosts within the hosts file
-#   blockinfile:
-#     dest: /etc/hosts
-#     marker: "# {mark} ANSIBLE MANAGED: ceph cluster hosts"
-#     content: |
-#       {% for host in groups[microceph_cluster_nodes] %}
-#       {{ hostvars[host].ansible_default_ipv4.address }} {{ host }}
-#       {% endfor %}
-
 - name: Add entries to /etc/hosts for all nodes in group
   ansible.builtin.lineinfile:
     path: /etc/hosts

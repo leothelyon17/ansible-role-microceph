@@ -73,3 +73,23 @@ will run `microceph cluster join <join token>`, more info on this can be found h
     ```
     $ pip install -r requirements.txt
     ```
+
+### Running the playbook
+
+Copy the sample inventory to a new inventory file
+    ```
+    $ cp inventory_sample.yml inventory.yml
+    ```
+
+Make necessary changes to inventory.yml
+
+Run playbook - requires CEPH host SSH password and sudo password
+(Build Cluster w/ GUI)
+    ```
+    ansible-playbook microceph_cluster_pb.yml -i inventory.yml --ask-pass --ask-become-pass --tags build-cluster,setup-gui
+    ```
+
+(Teardown Cluster)
+    ```
+    ansible-playbook microceph_cluster_pb.yml -i inventory.yml --ask-pass --ask-become-pass --tags teardown-cluster
+    ```

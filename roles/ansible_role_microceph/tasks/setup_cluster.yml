@@ -1,13 +1,22 @@
 ---
 
-- name: Enumerate all ceph cluster hosts within the hosts file
-  blockinfile:
-    dest: /etc/hosts
-    marker: "# {mark} ANSIBLE MANAGED: ceph cluster hosts"
-    content: |
-      {% for host in groups[microceph_cluster_nodes] %}
-      {{ hostvars[host].ansible_default_ipv4.address }} {{ host }}
-      {% endfor %}
+# - name: Enumerate all ceph cluster hosts within the hosts file
+#   blockinfile:
+#     dest: /etc/hosts
+#     marker: "# {mark} ANSIBLE MANAGED: ceph cluster hosts"
+#     content: |
+#       {% for host in groups[microceph_cluster_nodes] %}
+#       {{ hostvars[host].ansible_default_ipv4.address }} {{ host }}
+#       {% endfor %}
+
+- name: Add entries to /etc/hosts for all nodes in group
+  ansible.builtin.lineinfile:
+    path: /etc/hosts
+    line: "{{ hostvars[item].ansible_host }} {{ item }}"
+    state: present
+    create: yes
+  when: "'{{ hostvars[item].ansible_host }}' not in lookup('ansible.builtin.file', '/etc/hosts')"
+  loop: "{{ groups[microceph_cluster_nodes] }}"
 
 
 - name: Find the seed host from clusture node group
@@ -23,6 +32,19 @@
   ignore_errors: true
   when:
     - inventory_hostname == microceph_seed_node
+
+- name: Open necessary ports for Ceph cluster
+  ansible.builtin.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  become: true
+  loop:
+    - 6789/tcp    # Ceph monitor port
+    - 6800-7300/tcp  # Ceph OSD ports range
+    - 3300/tcp    # Ceph mgr port
+    - 7443/tcp # Ceph mgr port
 
 - name: Bootstrap the master microceph node
   ansible.builtin.command: "microceph cluster bootstrap"

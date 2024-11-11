@@ -1,0 +1,87 @@
+- name: Find the seed host from clusture node group
+  set_fact:
+    microceph_seed_node: '{{ (groups[microceph_cluster_nodes]|sort)[0] }}'
+  when:
+    - microceph_seed_node == ""
+
+- name: Unmount microceph directory
+  ansible.builtin.command:
+    cmd: umount /etc/cluster-ceph-share/
+  register: unmount_result
+  changed_when: unmount_result.rc == 0
+  ignore_errors: true
+
+- name: Remove all Ceph entries from /etc/fstab
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    regexp: '.*ceph.*'
+    state: absent
+  notify: Reboot if needed
+
+- name: Gather list of Ceph OSDs
+  ansible.builtin.command: microceph.ceph osd ls
+  register: osd_list_raw
+
+- name: Set list of OSDs for future loop (starting with highest ID)
+  set_fact:
+    osd_list: "{{ osd_list_raw.stdout_lines | map('int') | sort(reverse=True) }}"
+
+- name: Mark OSDs as 'out' in descending order
+  ansible.builtin.command: microceph.ceph osd out {{ item }}
+  loop: "{{ osd_list }}"
+  when:
+    - osd_list | length > 0
+  delegate_to: "{{ microceph_seed_node }}"
+
+- name: Mark OSDs as 'down' in descending order
+  ansible.builtin.command: microceph.ceph osd down {{ item }}
+  loop: "{{ osd_list }}"
+  when:
+    - osd_list | length > 0
+  delegate_to: "{{ microceph_seed_node }}"
+
+- name: Stop snap.microceph.osd service
+  ansible.builtin.systemd:
+    name: "snap.microceph.osd.service"
+    state: stopped
+
+- name: Remove OSDs in descending order
+  ansible.builtin.command: microceph.ceph osd rm {{ item }}
+  loop: "{{ osd_list }}"
+  when:
+    - osd_list | length > 0
+  delegate_to: "{{ microceph_seed_node }}"
+
+- name: Remove OSDs from crush map in descending order
+  ansible.builtin.command: microceph.ceph osd crush rm osd.{{ item }}
+  loop: "{{ osd_list }}"
+  when:
+    - osd_list | length > 0
+  delegate_to: "{{ microceph_seed_node }}"
+
+- name: Delete OSDs from cluster in descending order
+  ansible.builtin.command: microceph.ceph auth del osd.{{ item }}
+  register: delete_osd
+  loop: "{{ osd_list }}"
+  when:
+    - osd_list | length > 0
+  until: delete_osd is succeeded
+  retries: 5  # Number of retries per OSD deletion
+  delay: 10   # Wait 10 seconds between retries
+  delegate_to: "{{ microceph_seed_node }}"
+
+- name: Remove MicroCeph snap package
+  ansible.builtin.command: snap remove microceph --purge
+  ignore_errors: true  # Ignores errors if MicroCeph is already uninstalled
+  notify: Reboot if needed
+
+- name: Remove MicroCeph and Ceph directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /var/snap/microceph/
+    - /var/lib/ceph/
+    - /etc/ceph/
+    - /var/lib/microceph/
+    - /etc/microceph/

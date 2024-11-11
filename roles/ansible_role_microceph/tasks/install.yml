@@ -1,0 +1,82 @@
+- name: Make sure epel-release is installed
+  ansible.builtin.dnf:
+    name:
+      - epel-release
+    state: latest
+
+- name: Upgrade all packages
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+    allowerasing: true
+
+- name: Add Ceph RPM repo
+  ansible.builtin.template:
+    src: ../templates/ceph-repo.j2
+    dest: /etc/yum.repos.d/ceph.repo
+    mode: '0644'
+
+- name: Make sure snapd is installed
+  ansible.builtin.dnf:
+    name:
+      - snapd
+      - squashfs-tools
+      - ceph-common
+    state: latest
+
+# - name: Make sure snapd the latest and bleeding
+#   ansible.builtin.snap:
+#    name: snapd
+#    channel: "{{ microceph_snapd_version }}"
+#    state: present
+#   notify:
+#    - Restart microceph daemon
+
+- name: Enable main snap communication socket
+  ansible.builtin.command:
+    cmd: systemctl enable --now snapd.socket
+
+- name: Enable classic snap support symbolic link 
+  ansible.builtin.file:
+    src: /var/lib/snapd/snap
+    dest: /snap
+    state: link  
+  notify: Reboot if needed
+
+# - name: Reboot host(s) and wait for restart
+#   reboot:
+#    msg: "Reboot initiated by Ansible"
+#    connect_timeout: 5
+#    reboot_timeout: 600
+#    pre_reboot_delay: 0
+#    post_reboot_delay: 30
+#    test_command: whoami
+
+- name: Install microceph
+  ansible.builtin.snap:
+    name: microceph
+    channel: "{{ microceph_version }}"
+    state: present
+  notify: Reboot if needed
+
+- name: Enable rbd kernel module
+  community.general.modprobe:
+    name: rbd
+    persistent: present
+    state: present
+  notify: Reboot if needed
+
+- name: Allow snap to observe hardware interface
+  ansible.builtin.command:
+    cmd: snap connect microceph:hardware-observe
+  changed_when: false
+
+# - name: Connect microceph to dm crypt
+#   ansible.builtin.command:
+#     cmd: snap connect microceph:dm-crypt
+#   changed_when: false
+
+# Flush handlers after the package installation
+- name: Flush handlers to reboot host
+  ansible.builtin.meta: flush_handlers
+

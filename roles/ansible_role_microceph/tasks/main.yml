@@ -1,0 +1,71 @@
+---
+- name: Install micro ceph
+  ansible.builtin.include_tasks: 
+    file: install.yml
+    apply:
+        tags: build-cluster
+  tags:
+    - build-cluster
+    - never
+
+- name: Build cluster ceph nodes
+  ansible.builtin.include_tasks: 
+    file: setup_cluster.yml
+    apply:
+        tags: build-cluster
+  tags:
+    - build-cluster
+    - never
+
+- name: Install ceph storage disks on node
+  ansible.builtin.include_tasks: 
+    file: setup_disks.yml
+    apply:
+        tags: build-cluster
+  loop: "{{ microceph_disk_devices }}"
+  loop_control:
+    loop_var: disk_device
+  tags:
+    - build-cluster
+    - never
+
+- name: Set appropriate crush rules
+  ansible.builtin.include_tasks: 
+    file: crush_rules.yml
+    apply:
+        tags: build-cluster
+  tags:
+    - build-cluster
+    - never
+
+- name: Create Ceph file system and mount the filesystem
+  ansible.builtin.include_tasks: 
+    file: setup_fs_mount.yml
+    apply:
+        tags: build-cluster
+  tags:
+    - build-cluster
+    - never
+
+- name: Setup optional Ceph GUI
+  ansible.builtin.include_tasks:
+    file: setup_gui.yml
+    apply:
+        tags: setup-gui
+  tags:
+    - setup-gui
+    - never
+
+- name: Teardown existing microceph cluster
+  ansible.builtin.include_tasks:
+    file: teardown_cluster.yml
+    apply:
+        tags: teardown-cluster
+  tags:
+    - teardown-cluster
+    - never
+
+
+
+
+

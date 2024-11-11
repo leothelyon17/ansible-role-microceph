@@ -2,7 +2,7 @@
 
 - name: Set ceph replica count to be 2
   ansible.builtin.command:
-    cmd: microceph.ceph config set global osd_pool_default_size 2
+    cmd: microceph.ceph config set global osd_pool_default_size 3
   changed_when: false
 
 - name: Set ceph manager config appropriately

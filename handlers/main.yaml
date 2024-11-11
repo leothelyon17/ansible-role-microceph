@@ -1,5 +1,0 @@
----
-- name: Restart microceph daemon
-  ansible.builtin.command:
-    cmd: snap restart microceph.daemon
-

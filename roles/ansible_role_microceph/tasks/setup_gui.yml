@@ -1,0 +1,40 @@
+- name: Find the seed host from clusture node group
+  set_fact:
+    microceph_seed_node: '{{ (groups[microceph_cluster_nodes]|sort)[0] }}'
+  when:
+    - microceph_seed_node == ""
+
+- name: Dashboard configuration for MicroCeph
+  block:
+    - name: Disable SSL for MicroCeph Dashboard
+      ansible.builtin.command:
+        cmd: microceph.ceph config set mgr mgr/dashboard/ssl false
+
+    - name: Enable the Dashboard module for MicroCeph
+      ansible.builtin.command:
+        cmd: microceph.ceph mgr module enable dashboard
+
+    - name: Create password file for MicroCeph Dashboard
+      ansible.builtin.copy:
+        content: "p@ssw0rd"
+        dest: /var/snap/microceph/current/conf/password.txt
+        mode: '0600'
+
+    - name: Create MicroCeph Dashboard admin user
+      ansible.builtin.command:
+        cmd: microceph.ceph dashboard ac-user-create -i /var/snap/microceph/current/conf/password.txt admin administrator
+
+    - name: Remove temporary password file
+      ansible.builtin.file:
+        path: /var/snap/microceph/current/conf/password.txt
+        state: absent
+
+    - name: Open port 8080 for Ceph GUI
+      ansible.builtin.firewalld:
+        port: 8080/tcp
+        permanent: true
+        state: enabled
+        immediate: true
+
+  when:
+    - inventory_hostname == microceph_seed_node

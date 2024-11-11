@@ -1,0 +1,49 @@
+---
+
+- name: Create Ceph Filesystem
+  ansible.builtin.command:
+    cmd: "microceph.ceph fs volume create cluster-ceph-share"
+  delegate_to: "{{ microceph_seed_node }}"
+
+- name: Create ceph directory for sharing keys and config
+  ansible.builtin.file:
+    path: /etc/ceph/
+    state: directory
+    mode: '0755'
+
+- name: Create microceph filesystem shared directory if non existent
+  ansible.builtin.file:
+    path: /etc/cluster-ceph-share/
+    state: directory
+    mode: '0777'
+
+- name: Create symbolic link for Ceph client admin keyring
+  ansible.builtin.file:
+    src: /var/snap/microceph/current/conf/ceph.keyring
+    dest: /etc/ceph/ceph.keyring
+    state: link
+    force: yes
+
+- name: Create symbolic link for Ceph config
+  ansible.builtin.file:
+    src: /var/snap/microceph/current/conf/ceph.conf
+    dest: /etc/ceph/ceph.conf
+    state: link
+    force: yes
+
+- name: Add Ceph hosts to /etc/fstab dynamically
+  ansible.builtin.lineinfile:
+    path: /etc/fstab
+    line: "{{ groups['ceph_nodes'] | map('extract', hostvars, 'inventory_hostname') | join(',') }}:/ /etc/cluster-ceph-share/ ceph name=admin,noatime,_netdev 0 0"
+    state: present
+  notify: Restart systemd daemon
+
+- name: Flush handlers
+  ansible.builtin.meta: flush_handlers
+
+- name: Remount all entries in /etc/fstab
+  ansible.builtin.command: mount -a
+  register: mount_result
+  until: mount_result.rc == 0
+  retries: 5
+  delay: 10

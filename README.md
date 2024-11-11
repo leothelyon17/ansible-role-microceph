@@ -6,13 +6,14 @@ Role installs a ceph cluster using [microceph](https://canonical-microceph.readt
 
 * Ansible >= 2.7
 * Linux Distribution
-    * Debian Family
+    * Rocky Linux 9
+    <!-- * Debian Family
         * Ubuntu
             * Xenial (16.04)
             * Bionic (18.04)
             * Focal (20.04) (untested)
             * Jammy (22.04) (untested)
-    * Arch Linux (untested)
+    * Arch Linux (untested) -->
 
 ## License
 

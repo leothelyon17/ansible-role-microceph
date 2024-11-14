@@ -2,7 +2,7 @@
 
 - name: Create Ceph Filesystem
   ansible.builtin.command:
-    cmd: "microceph.ceph fs volume create cluster-ceph-share"
+    cmd: "microceph.ceph fs volume create k8s-cephfs"
   delegate_to: "{{ microceph_seed_node }}"
 
 - name: Create ceph directory for sharing keys and config
@@ -13,7 +13,7 @@
 
 - name: Create microceph filesystem shared directory if non existent
   ansible.builtin.file:
-    path: /etc/cluster-ceph-share/
+    path: /etc/k8s-cephfs/
     state: directory
     mode: '0777'
 
@@ -34,7 +34,7 @@
 - name: Add Ceph hosts to /etc/fstab dynamically
   ansible.builtin.lineinfile:
     path: /etc/fstab
-    line: "{{ groups['ceph_nodes'] | map('extract', hostvars, 'inventory_hostname') | join(',') }}:/ /etc/cluster-ceph-share/ ceph name=admin,noatime,_netdev 0 0"
+    line: "{{ groups['ceph_nodes'] | map('extract', hostvars, 'inventory_hostname') | join(',') }}:/ /etc/k8s-cephfs/ ceph name=admin,mds_namespace=cephfs.k8s-cephfs,noatime,_netdev 0 0"
     state: present
   notify: Restart systemd daemon
 

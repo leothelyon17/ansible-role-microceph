@@ -3,7 +3,7 @@
   become: yes
   become_method: su
   vars_files:
-    - cluster-vars.yml
+    - ./cluster-vars.yml
   roles:
     - role: "./roles/ansible_role_microceph"
       # vars:

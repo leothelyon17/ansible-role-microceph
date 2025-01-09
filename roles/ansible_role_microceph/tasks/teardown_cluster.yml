@@ -6,7 +6,7 @@
 
 - name: Unmount microceph directory
   ansible.builtin.command:
-    cmd: umount /etc/cluster-ceph-share/
+    cmd: umount /etc/k8s-cephfs/
   register: unmount_result
   changed_when: unmount_result.rc == 0
   ignore_errors: true
@@ -33,11 +33,35 @@
     - osd_list | length > 0
   delegate_to: "{{ microceph_seed_node }}"
 
+- name: Verify OSDs are marked as 'out'
+  ansible.builtin.command: microceph.ceph osd tree --format=json
+  register: osd_tree
+  until: >-
+    osd_tree.stdout | from_json | json_query(
+      "nodes[?status=='out'] | length(@)"
+    ) == osd_list | length
+  retries: 10
+  delay: 5  # Wait 5 seconds between retries
+  delegate_to: "{{ microceph_seed_node }}"
+  changed_when: false  # Prevent marking the play as changed
+
+- name: Fail if any OSD is not 'out'
+  ansible.builtin.fail:
+    msg: "Some OSDs are not 'out'. Aborting."
+  when: >-
+    osd_tree.stdout | from_json | json_query(
+      "nodes[?status!='out'] | length(@)"
+    ) > 0
+
 - name: Mark OSDs as 'down' in descending order
   ansible.builtin.command: microceph.ceph osd down {{ item }}
+  register: mark_osd_down
   loop: "{{ osd_list }}"
   when:
     - osd_list | length > 0
+  until: mark_osd_down is succeeded
+  retries: 5  # Number of retries per OSD deletion
+  delay: 10   # Wait 10 seconds between retries
   delegate_to: "{{ microceph_seed_node }}"
 
 - name: Stop snap.microceph.osd service

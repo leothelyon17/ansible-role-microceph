@@ -4,6 +4,10 @@
   when:
     - microceph_seed_node == ""
 
+- name: Check if Ceph dashboard is enabled
+  ansible.builtin.command: microceph.ceph mgr module ls
+  register: ceph_mgr_modules
+
 - name: Dashboard configuration for MicroCeph
   block:
     - name: Disable SSL for MicroCeph Dashboard
@@ -38,3 +42,8 @@
 
   when:
     - inventory_hostname == microceph_seed_node
+    - ceph_mgr_modules.stdout is not search('dashboard\s+on')
+  rescue:
+    - name: Send debug message if block is skipped
+      ansible.builtin.debug:
+        msg: "The GUI is already enabled. Skipping setup."
